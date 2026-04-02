@@ -1,0 +1,4 @@
+interface:
+  display_name: "OpenClaw Codex OAuth Sync"
+  short_description: "Sync Codex OAuth into OpenClaw"
+  default_prompt: "Use $sync-openclaw-codex-oauth to sync a new Codex OAuth token into OpenClaw on this machine."
