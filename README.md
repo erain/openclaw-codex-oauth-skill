@@ -18,7 +18,8 @@ This repo packages a Codex skill for one narrow maintenance task: take the curre
 - Update `~/.openclaw/openclaw.json` auth profile references
 - Refresh the legacy `~/.openclaw/agents/main/agent/auth.json` bridge
 - Install `~/.config/openai-codex-env.zsh` and source it from common shell startup files
-- Optionally restart the OpenClaw gateway on Linux
+- Optionally restart the OpenClaw gateway on Linux, preferring `openclaw gateway restart`
+  before falling back to the manual launch path
 
 ## Important Constraint
 
@@ -57,3 +58,9 @@ openclaw models list --provider openai-codex --json
 openclaw models list --status --json
 zsh -lc 'printenv OPENAI_OAUTH_TOKEN | wc -c'
 ```
+
+## Evaluations
+
+Redacted successful-run evaluations live in `evals/`. Add an entry there when a
+real run proves the skill still syncs credentials, validates `openai-codex`
+auth, and reloads the gateway successfully.

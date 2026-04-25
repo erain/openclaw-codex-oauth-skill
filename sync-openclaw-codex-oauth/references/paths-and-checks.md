@@ -31,6 +31,21 @@ openclaw models list --status --json
 zsh -lc 'printenv OPENAI_OAUTH_TOKEN | wc -c'
 ```
 
+For a live provider check, use:
+
+```bash
+openclaw models status --json --probe --probe-provider openai-codex
+```
+
+If `--restart-gateway` is used on Linux, the script prefers:
+
+```bash
+openclaw gateway restart
+```
+
+It falls back to the manual `pkill`/`nohup openclaw gateway run` path only when
+the CLI restart fails.
+
 ## Important limitations
 
 - `OPENAI_OAUTH_TOKEN` is not a drop-in replacement for `OPENAI_API_KEY`.
