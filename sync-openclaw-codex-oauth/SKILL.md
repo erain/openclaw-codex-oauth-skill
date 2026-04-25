@@ -15,6 +15,8 @@ The script updates OpenClaw's auth stores, refreshes the legacy `auth.json` brid
 1. Confirm the current Codex auth file exists at `~/.codex/auth.json`.
 2. Run `scripts/sync_codex_oauth_to_openclaw.py --print-summary`.
 3. If the host runs an OpenClaw gateway process and it is safe to bounce it, rerun with `--restart-gateway`.
+   On Linux, the script first tries `openclaw gateway restart` and falls back to
+   a manual launch path only when the CLI restart fails.
 4. Reopen the shell or source the updated startup files if the user needs `OPENAI_OAUTH_TOKEN` in the current session.
 5. Validate with OpenClaw model listing commands.
 
@@ -45,6 +47,9 @@ zsh -lc 'printenv OPENAI_OAUTH_TOKEN | wc -c'
 ```
 
 Read `references/paths-and-checks.md` when you need the exact files touched, shell startup details, or validation checklist.
+
+Successful run notes can be recorded in the repository-level `evals/` directory.
+Keep those entries redacted: no token material, account IDs, or account emails.
 
 ## Repair Strategy
 

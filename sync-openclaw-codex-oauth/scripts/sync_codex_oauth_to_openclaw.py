@@ -152,6 +152,66 @@ def find_openclaw_bin(home: Path, explicit: str | None) -> str | None:
     return None
 
 
+def summarize_process_output(completed: subprocess.CompletedProcess[str]) -> str:
+    parts = [completed.stdout.strip(), completed.stderr.strip()]
+    output = "\n".join(part for part in parts if part)
+    return output[-4000:]
+
+
+def gateway_is_listening() -> bool:
+    return (
+        subprocess.run(
+            ["sh", "-lc", "ss -ltnp | grep 18789 >/dev/null 2>&1"],
+            check=False,
+        ).returncode
+        == 0
+    )
+
+
+def wait_for_gateway(timeout_seconds: int = 10) -> bool:
+    for _ in range(timeout_seconds):
+        if gateway_is_listening():
+            return True
+        time.sleep(1)
+    return False
+
+
+def restart_with_openclaw_cli(openclaw_bin: str) -> dict[str, Any]:
+    try:
+        completed = subprocess.run(
+            [openclaw_bin, "gateway", "restart"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=90,
+        )
+    except subprocess.TimeoutExpired as exc:
+        parts = [exc.stdout or "", exc.stderr or ""]
+        output = "\n".join(str(part).strip() for part in parts if str(part).strip())
+        return {
+            "status": "failed",
+            "method": "openclaw gateway restart",
+            "error": "Timed out after 90 seconds.",
+            **({"output": output[-4000:]} if output else {}),
+        }
+
+    output = summarize_process_output(completed)
+    if completed.returncode != 0:
+        return {
+            "status": "failed",
+            "method": "openclaw gateway restart",
+            "exit_code": completed.returncode,
+            **({"output": output} if output else {}),
+        }
+
+    listening = wait_for_gateway()
+    return {
+        "status": "restarted" if listening else "restarted-unverified",
+        "method": "openclaw gateway restart",
+        **({"output": output} if output else {}),
+    }
+
+
 def restart_gateway(home: Path, openclaw_bin: str | None) -> dict[str, Any]:
     if sys.platform == "darwin":
         return {
@@ -172,6 +232,13 @@ def restart_gateway(home: Path, openclaw_bin: str | None) -> dict[str, Any]:
             "reason": "Could not resolve the openclaw executable.",
         }
 
+    cli_restart = restart_with_openclaw_cli(resolved_bin)
+    if cli_restart and cli_restart.get("status") != "failed":
+        return {
+            **cli_restart,
+            "openclaw_bin": resolved_bin,
+        }
+
     subprocess.run(["pkill", "-9", "-f", "openclaw-gateway"], check=False)
 
     log_path = Path("/tmp/openclaw-gateway.log")
@@ -182,23 +249,14 @@ def restart_gateway(home: Path, openclaw_bin: str | None) -> dict[str, Any]:
     )
     subprocess.run(["sh", "-lc", launch_cmd], check=True)
 
-    listening = False
-    for _ in range(10):
-        listening = (
-            subprocess.run(
-                ["sh", "-lc", "ss -ltnp | grep 18789 >/dev/null 2>&1"],
-                check=False,
-            ).returncode
-            == 0
-        )
-        if listening:
-            break
-        time.sleep(1)
+    listening = wait_for_gateway()
 
     return {
         "status": "restarted" if listening else "started-unverified",
+        "method": "manual pkill/nohup fallback",
         "openclaw_bin": resolved_bin,
         "log_path": str(log_path),
+        **({"cli_restart": cli_restart} if cli_restart else {}),
     }
 
 
